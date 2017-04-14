@@ -319,7 +319,7 @@ start:
     
     ;TODO 1: STATUS OK
     ;Capturar o input e verificar em qual registrador ele fica  
-    
+cap:   
     mov ah, 1   ;prepara para entrar caracter pelo teclado
                 ;o processador espera ate que o usuario
                 ;digite o caracter desejado    
@@ -329,7 +329,37 @@ start:
     
     
     ;TODO 2: STATUS NAO OK
-    ;Verificar se o input existe na palavra;
+    ;Verificar se o input existe na palavra;  
+    
+    lea si, palavra ;coloca uma copia do offset do endereco
+                    ;da posicao de memoria fonte no registrador destino.
+
+verifica:       
+    cmp ds:[si], al ;compara se o codigo ASCII eh igual ao do offset do data segment 
+                    ;Obs: nao difere maiusculas de minusculas
+    
+    je escreve1     ;tratamento caso seja
+    
+    cmp ds:[si], "$";se a chegar ao sifrao entao o input nao existe na palavra
+    je escreve2     ;tratamento do erro
+            
+    inc si          ;passa para o proximo offset da palavra
+    jmp verifica
+    
+      
+escreve1:           ;tratamento para testes
+    MOV AH,1  
+    MOV AL,1 
+    LEA SI,LETRA_A 
+    CALL ESCREVE_DISPLAY_GRAFICO
+    jmp cap
+                    
+escreve2:           ;tratamento para testes
+    MOV AH,1  
+    MOV AL,1 
+    LEA SI,LETRA_B 
+    CALL ESCREVE_DISPLAY_GRAFICO
+    jmp cap    
     
     ;TODO 3: STATUS NAO OK
     ;Se o input existe na palavra escrevelo na tela, se nao desenhar a forca
@@ -337,11 +367,7 @@ start:
     ;TODO 4; STATUS NAO OK
     ;Vericar se o jogo terminou
     
-          
-    MOV AH,7  
-    MOV AL,7 
-    LEA SI,LETRA_A 
-    CALL ESCREVE_DISPLAY_GRAFICO
+
     
     
     
@@ -371,7 +397,8 @@ ESCREVE:
     JMP ESCREVE
 SAI:
 RET
-
+ 
+FIM:
 
 
 ends
