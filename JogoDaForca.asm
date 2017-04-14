@@ -288,7 +288,11 @@ DB 00010000B
 DB 00100000B
 DB 01000000B
 DB 11111110B
-DB "$"
+DB "$"              
+
+erros db 0           ;Contador de erros
+palavra db "Miguel$" ;Paravra para ser escrita
+exibicao db "------" ;Sera axibido na tela
          
 ends
 
@@ -310,8 +314,21 @@ start:
     INT 10H ;CHAMA BIOS - PLACA VIDEO
     
     MOV SI,0A000H
-    MOV ES,SI ; AGORA ES APONTA PARA O SEGMENTO DE VIDEO MODO GRAFICO
+    MOV ES,SI ; AGORA ES APONTA PARA O SEGMENTO DE VIDEO MODO GRAFICO 
     
+    ;TODO 1:
+    ;Capturar o input e verificar em qual registrador ele fica
+    
+    ;TODO 2:
+    ;Verificar se o input existe na palavra;
+    
+    ;TODO 3:
+    ;Se o input existe na palavra escrevelo na tela, se nao desenhar a forca
+    
+    ;TODO 4;
+    ;Vericar se o jogo terminou
+    
+          
     MOV AH,7  
     MOV AL,7 
     LEA SI,LETRA_A 
