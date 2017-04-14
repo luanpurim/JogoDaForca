@@ -316,16 +316,25 @@ start:
     MOV SI,0A000H
     MOV ES,SI ; AGORA ES APONTA PARA O SEGMENTO DE VIDEO MODO GRAFICO 
     
-    ;TODO 1:
-    ;Capturar o input e verificar em qual registrador ele fica
     
-    ;TODO 2:
+    ;TODO 1: STATUS OK
+    ;Capturar o input e verificar em qual registrador ele fica  
+    
+    mov ah, 1   ;prepara para entrar caracter pelo teclado
+                ;o processador espera ate que o usuario
+                ;digite o caracter desejado    
+                
+    int 21h     ;apos a digitacao, caracter ASCII em AL
+                ;se um caracter nao-ASCII for digitado, AL = 0h
+    
+    
+    ;TODO 2: STATUS NAO OK
     ;Verificar se o input existe na palavra;
     
-    ;TODO 3:
+    ;TODO 3: STATUS NAO OK
     ;Se o input existe na palavra escrevelo na tela, se nao desenhar a forca
     
-    ;TODO 4;
+    ;TODO 4; STATUS NAO OK
     ;Vericar se o jogo terminou
     
           
@@ -334,9 +343,7 @@ start:
     LEA SI,LETRA_A 
     CALL ESCREVE_DISPLAY_GRAFICO
     
-    ;wait for any key....
-    mov ah, 1
-    int 21h
+    
     
     mov ax, 4c00h ; exit to operating system.
     int 21h
