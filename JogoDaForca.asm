@@ -288,11 +288,24 @@ DB 00010000B
 DB 00100000B
 DB 01000000B
 DB 11111110B
-DB "$"              
+DB "$"
+
+TRACO:
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 11111110B
+DB 11111110B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB "$"             
 
 erros db 0           ;Contador de erros
-palavra db "Miguel$" ;Paravra para ser escrita
-exibicao db "------" ;Sera axibido na tela
+palavra db "miguel$" ;Paravra para ser escrita
+EXIBICAO DW 6        ;Sera axibido na tela 
+linha db 1           ;Linha onde sera escrita a palavra
+coluna db 1          ;Coluna onde sera escrita a palavra
          
 ends
 
@@ -319,7 +332,9 @@ start:
     
     ;TODO 1: STATUS OK
     ;Capturar o input e verificar em qual registrador ele fica  
-cap:   
+    
+CAPTURA:       
+
     mov ah, 1   ;prepara para entrar caracter pelo teclado
                 ;o processador espera ate que o usuario
                 ;digite o caracter desejado    
@@ -328,59 +343,202 @@ cap:
                 ;se um caracter nao-ASCII for digitado, AL = 0h
     
     
-    ;TODO 2: STATUS NAO OK
-    ;Verificar se o input existe na palavra;  
+    ;TODO 2: STATUS NAO OK - FALTA TRATAMENTO DE ERRO
+    ;Verificar se o input existe na palavra;
+      
     
     lea si, palavra ;coloca uma copia do offset do endereco
-                    ;da posicao de memoria fonte no registrador destino.
+                    ;da posicao de memoria fonte no registrador destino. 
+    mov cl, 0
 
-verifica:       
+VERIFICA:   
+    
     cmp ds:[si], al ;compara se o codigo ASCII eh igual ao do offset do data segment 
                     ;Obs: nao difere maiusculas de minusculas
     
-    je escreve1     ;tratamento caso seja
+    je ESCREVER_ACERTO     ;tratamento caso seja certo
     
     cmp ds:[si], "$";se a chegar ao sifrao entao o input nao existe na palavra
-    je escreve2     ;tratamento do erro
+    je ESCREVER_ERRO     ;tratamento do erro
             
-    inc si          ;passa para o proximo offset da palavra
-    jmp verifica
+    inc si          ;passa para o proximo offset da palavra    
+    inc cl          ;contador para escrever palavra
+    jmp VERIFICA
     
-      
-escreve1:           ;tratamento para testes
-    MOV AH,1  
-    MOV AL,1 
-    LEA SI,LETRA_A 
-    CALL ESCREVE_DISPLAY_GRAFICO
-    jmp cap
                     
-escreve2:           ;tratamento para testes
+ESCREVER_ERRO:           ;tratamento para testes
     MOV AH,1  
-    MOV AL,1 
-    LEA SI,LETRA_B 
-    CALL ESCREVE_DISPLAY_GRAFICO
-    jmp cap    
+    MOV AL,5 
+    LEA SI,LETRA_Z 
+    JMP ESCREVE_DISPLAY_GRAFICO
+    jmp CAPTURA    
     
-    ;TODO 3: STATUS NAO OK
-    ;Se o input existe na palavra escrevelo na tela, se nao desenhar a forca
+    ;TODO 3: STATUS NAO OK  - FALTA O TRATAMENTO DE ERRO
+    ;Se o input existe na palavra escrevelo na tela, se nao desenhar a forca   
+    
+ESCREVER_ACERTO:
+    CALL ESCREVE_LETRA
+    JMP CAPTURA
+    
+ESCREVE_LETRA: 
+    
+    CMP AL, "a"
+    LEA SI, LETRA_A
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA 
+        
+    CMP AL, "b"
+    LEA SI, LETRA_B
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "c"
+    LEA SI, LETRA_C
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "d"
+    LEA SI, LETRA_D
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "e"
+    LEA SI, LETRA_E
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "f"
+    LEA SI, LETRA_F
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "g"
+    LEA SI, LETRA_G
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "h"
+    LEA SI, LETRA_H
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "i"
+    LEA SI, LETRA_I
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "j"
+    LEA SI, LETRA_J
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "k"
+    LEA SI, LETRA_K
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "l"
+    LEA SI, LETRA_L
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "m"
+    LEA SI, LETRA_M
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "n"
+    LEA SI, LETRA_N
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "o"
+    LEA SI, LETRA_O
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "p"
+    LEA SI, LETRA_P
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "q"
+    LEA SI, LETRA_Q
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "r"
+    LEA SI, LETRA_R
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "s"
+    LEA SI, LETRA_S
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "t"
+    LEA SI, LETRA_T
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "u"
+    LEA SI, LETRA_U
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "v"
+    LEA SI, LETRA_V
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "w"
+    LEA SI, LETRA_W
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "x"
+    LEA SI, LETRA_X
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "y"
+    LEA SI, LETRA_Y
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+        
+    CMP AL, "z"
+    LEA SI, LETRA_Z
+    JE ESCREVE_DISPLAY_LETRA
+    JE RETORNA
+                            
+ESCREVE_DISPLAY_LETRA:
+    CALL ESCREVE_DISPLAY_GRAFICO                           
+                          
+RETORNA:
+    RET    
+    
+    
     
     ;TODO 4; STATUS NAO OK
     ;Vericar se o jogo terminou
     
-
-    
-    
+  
     
     mov ax, 4c00h ; exit to operating system.
     int 21h
 
-ESCREVE_DISPLAY_GRAFICO:
+ESCREVE_DISPLAY_GRAFICO: 
+    MOV AH,COLUNA
+    MOV AL,LINHA
+    ADD AH, CL
+
     PUSH AX
     MOV BL,8
     MUL BL 
     MOV BL,40
     MUL BL
-    ; AX = A L*BL = 1*40
+    ; AX = AL*BL = 1*40
     ; DI APONTARA PARA O OFFSET
     MOV DI,AX
     POP AX
@@ -396,9 +554,8 @@ ESCREVE:
     INC SI
     JMP ESCREVE
 SAI:
-RET
+    RET
  
-FIM:
 
 
 ends
