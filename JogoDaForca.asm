@@ -340,7 +340,12 @@ start:
     
         mov ah, 1 ; comando para o SO para leitura de dados de input (teclado)
         int 21h ; DO IT
-    
+        
+        ;TODO bug na escrita da mensagem de final de jogo
+        ;TODO validar se o input foi uma letra
+        ;TODO letra 'V' sendo exibida de maneira estranha
+        ;TODO exibir a forca
+        
         CALL VERIFY_LETTER ; verifica a letra informada como input
     
         CALL VERIFY_GAME_STATE ; verifica se o jogo deve prosseguir ou terminar
@@ -383,17 +388,26 @@ RET
    
    
 VERIFY_GAME_STATE:
-   CMP errors, 6
-   JE lose   
-   CMP hits, word_length
-   JE won   
+   CMP errors, 6 ; atingiu seis erros
+   JE lose ; caixao
+   MOV BL, word_length 
+   CMP hits, BL ; se o numero de acertos for a mesma quantidade do tamanho da palavra
+   JE won ; o cara eh bom, ganhou    
 RET
 
 
 won:
+    CALL CLEAR_SCREEN
+    LEA BX, winner_message
+    
+    CALL WRITE_MESSAGE
     JMP exit 
 
 lose:
+    CALL CLEAR_SCREEN
+    LEA BX, loser_message
+    
+    CALL WRITE_MESSAGE 
     JMP exit
 
 exit: 
@@ -401,12 +415,41 @@ exit:
     int 21h ; DO IT
     
 
-WRITE_MESSAGE:
-
+WRITE_MESSAGE: ; escrevo uma variavel tendo como base o primeiro offset de um
+                   ; dado contido em BX. Utilizado em BX para simplificar o desenvolvimento
+                   ; ja que SI esta sendo utilizado em boa parte do codigo.
+                   ; Nao chore! Isso nao traz nenhum risco de confusao de valores em execucoes
+                   ; futuras pois este trecho eh a ultima execucao do programa
+                    
+    MOV DH, 1 ; coluna inicial da mensagem
+    MOV DL, 1 ; linha da mensagem
+    
+    message_not_end:
+        CMP BX, "$"
+        JE message_ended
+        
+        MOV AX, BX ; move a letra contida em BX para AX, onde a chamada ira atribuir
+                   ; para SI o offset do caracter correto
+        CALL GET_CHARACTER
+        
+        MOV AX, DX ; atribuo a linha e coluna correta para chamada
+        CALL WRITE_CHARACTER
+  
+        INC BX ; proxima letra da mensagems
+        INC DH ; proxima coluna do segmento grafico
+    JMP message_not_end
+    
+    message_ended:
 RET
     
 
-VERIFY_LETTER: ;Verificar se o input existe na palavra;     
+VERIFY_LETTER: ; Verificar se o input existe na palavra;     
+
+    JMP can_verify ; Aqui verifica se o input ja nao foi informado anteriormente
+                   ; pelo usuario
+                   
+    yes_we_can: ; primeira vez informando o input                   
+    
     LEA SI, word    ;coloca uma copia do offset do endereco
                     ;da posicao de memoria fonte no registrador destino.
     
@@ -415,30 +458,57 @@ VERIFY_LETTER: ;Verificar se o input existe na palavra;
     MOV DI, 0 ; zera o valor de DI, que sera utilizado posteriormente para substituir
               ; a letra, caso acertada, da variavel de execucao correspondente
                     
-    verify:       
+    verify:           
         CMP [SI], "$" ;
         JE finished_verification ; apos acabar a palavra, sera necessario verificar
                                  ; se houve algum acerto. A variavel que informa se houve
                                  ; algum acerto esta em DX (0 ou 1) 
     
         CMP [SI], AL ; compara se o codigo ASCII eh igual ao do offset do data segment 
-                    ; Obs: nao difere maiusculas de minusculas
-                    
+                     ; Obs: nao difere maiusculas de minusculas
+        
+        PUSH SI ; exists manipula SI, entao eh necessario salvar seu estado           
+        PUSH AX ; salva o input informado
+        
         JE exists ; tratamento caso seja
         
         exists_return: ; posso ter varias letras iguais na mesma palavra,
                        ; entao preciso substituir quantas vezes for necessaria
-            
+                       
+        POP AX ; recupera o input informado
+        POP SI ; recupera o estado de SI
+        
         INC SI ; passa para o proximo offset da palavra
         INC DI ; incrementa o index da palavra
     JMP verify
     finished_verification_return:
- RET
+RET
+
+
+can_verify:
+    LEA SI, word_execution
     
+    verify_char_already_used:
+        CMP [SI], "$"
+        JE yes_we_can ; se chegou no final da palavra e nenhuma letra informada bateu
+                       ; pode fazer todo o processo de verificacao
+                       
+        CMP [SI], AL   ; se o input estiver na palavra em execucao, significa que o usuario
+                       ; ja informou
+                       
+                       ; ATENCAO, SE O CARA INFORMAR DUAS VEZES A PALAVRA ERRADA
+                       ; ESTAMOS CONSIDERANDO COMO DOIS ERROS, NINGUEM MANDA SER NOOB
+                       
+        JE finished_verification_return ; o processo de verificacao nao sera realizado
+        
+        INC SI
+    JMP verify_char_already_used           
+
       
-exists:           
+exists:
+    INC hits
+           
     MOV DX, 1 ; informa que ao menos uma letra foi encontrada
-    PUSH SI ; salva o offset atual da letra da palavra sendo verificada para comparar depois
     
     LEA SI, word_execution ; pega a palavra que esta com os valores informados em execucao
     ADD SI, DI ; adiciona com o index da letra sendo verificada
@@ -451,9 +521,9 @@ exists:
     MOV AH, row
     XCHG AH,AL ; necessario pois para adicionar com DI eh necessario ser um registrador 16 bits
     
+    PUSH DI ; write character utiliza DI
     CALL WRITE_CHARACTER ; troca o "traco" pelo caracter correspondente
-    
-    POP SI ; recupera o valor para continuar a verificacao
+    POP DI ; recupera o valor de DI
     
 JMP exists_return
 
@@ -461,15 +531,8 @@ JMP exists_return
 finished_verification:           
     CMP DX, 0 ; se nao houve uma letra encontrada
     JE wrong_hit
-    JMP hit_return
     hit_return:
 JMP finished_verification_return
-                  
-                  
-right_hit:
-    inc hits
-JMP hit_return:   
-
          
 wrong_hit: ; executa uma acao caso a uma letra incorreta for informada
     inc errors
