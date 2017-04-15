@@ -2,6 +2,16 @@
 
 data segment
 
+word dw "criatividade$"
+word_execution dw "____________$"
+winner_message dw "Parabens, voce ganhou!$"
+loser_message dw "Parabens, voce perdeu, noob!$"
+
+word_length db 12
+hits db 0
+errors db 0
+row db 5
+column db 5
 
 LETRA_A: 
 DB 11111110B
@@ -289,6 +299,17 @@ DB 00100000B
 DB 01000000B
 DB 11111110B
 DB "$"
+
+TRACE: 
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 11111110B
+DB "$"
          
 ends
 
@@ -303,8 +324,6 @@ start:
     mov ds, ax
     mov es, ax
     
-    ; add your code here
-    
     MOV AH,0 ;SETA MODO VIDEO
     MOV AL,0DH ;320x200
     INT 10H ;CHAMA BIOS - PLACA VIDEO
@@ -312,43 +331,339 @@ start:
     MOV SI,0A000H
     MOV ES,SI ; AGORA ES APONTA PARA O SEGMENTO DE VIDEO MODO GRAFICO
     
-    MOV AH,7  
-    MOV AL,7 
-    LEA SI,LETRA_A 
-    CALL ESCREVE_DISPLAY_GRAFICO
+    CALL CLEAR_SCREEN ; limpa a tela para facilitar execucoes consecutivas do programa
+                        
+    MOV AX, 0
+    CALL INITIALIZE_WORD ; desenha os tracos
     
-    ;wait for any key....
-    mov ah, 1
-    int 21h
+    continue_game:
     
-    mov ax, 4c00h ; exit to operating system.
-    int 21h
-
-ESCREVE_DISPLAY_GRAFICO:
-    PUSH AX
-    MOV BL,8
-    MUL BL 
-    MOV BL,40
-    MUL BL
-    ; AX = A L*BL = 1*40
-    ; DI APONTARA PARA O OFFSET
-    MOV DI,AX
-    POP AX
-    MOV AL,0
-    XCHG AH,AL 
-    ADD DI,AX
-ESCREVE:
-    MOV AL, [SI]
-    CMP AL, "$"
-    JE SAI
-    MOV ES:[DI],AL
-    ADD DI,40
-    INC SI
-    JMP ESCREVE
-SAI:
+        mov ah, 1 ; comando para o SO para leitura de dados de input (teclado)
+        int 21h ; DO IT
+    
+        CALL VERIFY_LETTER ; verifica a letra informada como input
+    
+        CALL VERIFY_GAME_STATE ; verifica se o jogo deve prosseguir ou terminar
+    
+    JMP continue_game
+    
+    
+CLEAR_SCREEN: ; limpa a tela do display grafico
+   MOV DI, 0
+   MOV CH, 0
+   MOV CL, 200 ; linhas (altura da linha)
+   clear_column:
+        PUSH CX      
+           MOV CL, 40 ; colunas (largura da tela)
+           clear_row:
+           MOV ES:[DI], 0
+           LOOP clear_row
+        POP CX
+        INC DI
+        LOOP clear_column
+RET
+    
+INITIALIZE_WORD:
+   
+    MOV AL, row
+    MOV AH, column                                 
+    
+    MOV CL, word_length ; quantidade de vezes que o loop ira percorrer
+                        ; Obs.: O valor a ser utilizado sera CL
+    
+    write_traces:
+        LEA SI, trace ; valores que representam o desenho do traco         
+        PUSH AX ; adiciona para recuperar o valor de AX apos a funcao
+        CALL WRITE_CHARACTER
+        POP AX ; recupera o valor atual da linha e coluna
+        INC AH ; pula para proxima coluna
+    LOOP write_traces
+    
+RET
+   
+   
+VERIFY_GAME_STATE:
+   CMP errors, 6
+   JE lose   
+   CMP hits, word_length
+   JE won   
 RET
 
 
+won:
+    JMP exit 
+
+lose:
+    JMP exit
+
+exit: 
+    mov ax, 4c00h ; exit to operating system.
+    int 21h ; DO IT
+    
+
+WRITE_MESSAGE:
+
+RET
+    
+
+VERIFY_LETTER: ;Verificar se o input existe na palavra;     
+    LEA SI, word    ;coloca uma copia do offset do endereco
+                    ;da posicao de memoria fonte no registrador destino.
+    
+    MOV DX, 0 ; zera o valor que ira representar se alguem acertou ou nao a letra
+                    
+    MOV DI, 0 ; zera o valor de DI, que sera utilizado posteriormente para substituir
+              ; a letra, caso acertada, da variavel de execucao correspondente
+                    
+    verify:       
+        CMP [SI], "$" ;
+        JE finished_verification ; apos acabar a palavra, sera necessario verificar
+                                 ; se houve algum acerto. A variavel que informa se houve
+                                 ; algum acerto esta em DX (0 ou 1) 
+    
+        CMP [SI], AL ; compara se o codigo ASCII eh igual ao do offset do data segment 
+                    ; Obs: nao difere maiusculas de minusculas
+                    
+        JE exists ; tratamento caso seja
+        
+        exists_return: ; posso ter varias letras iguais na mesma palavra,
+                       ; entao preciso substituir quantas vezes for necessaria
+            
+        INC SI ; passa para o proximo offset da palavra
+        INC DI ; incrementa o index da palavra
+    JMP verify
+    finished_verification_return:
+ RET
+    
+      
+exists:           
+    MOV DX, 1 ; informa que ao menos uma letra foi encontrada
+    PUSH SI ; salva o offset atual da letra da palavra sendo verificada para comparar depois
+    
+    LEA SI, word_execution ; pega a palavra que esta com os valores informados em execucao
+    ADD SI, DI ; adiciona com o index da letra sendo verificada
+    MOV [SI], AL ; e troca o possivel "traco" pela letra compativel
+    
+    CALL GET_CHARACTER ; seta em SI o offset correspondente a letra a ser impressa
+    
+    MOV AL, column
+    ADD AX, DI ; aponta para a coluna (traco) a ser substituida
+    MOV AH, row
+    XCHG AH,AL ; necessario pois para adicionar com DI eh necessario ser um registrador 16 bits
+    
+    CALL WRITE_CHARACTER ; troca o "traco" pelo caracter correspondente
+    
+    POP SI ; recupera o valor para continuar a verificacao
+    
+JMP exists_return
+
+                    
+finished_verification:           
+    CMP DX, 0 ; se nao houve uma letra encontrada
+    JE wrong_hit
+    JMP hit_return
+    hit_return:
+JMP finished_verification_return
+                  
+                  
+right_hit:
+    inc hits
+JMP hit_return:   
+
+         
+wrong_hit: ; executa uma acao caso a uma letra incorreta for informada
+    inc errors
+JMP hit_return:
+
+                 
+WRITE_CHARACTER: ; escreve um caracter na linha e coluna apontada. AH = coluna, AL = linha
+    PUSH AX
+    MOV BL, 8 ; altura da linha
+    MUL BL 
+    MOV BL, 40 ;quantidade de offsets que uma linha tem
+    MUL BL           
+    ; linha * 8 * 40 = offset da linha
+    
+    ; AX = AL * BL
+    
+    MOV DI,AX ; DI apontara para o offset do display grafico
+    POP AX ; recupera a coluna
+    MOV AL,0 ; a coluna esta em AH entao eh necessario zerar o AL.....
+    XCHG AH,AL ; para inverter e obter o valor de AH em AX  
+    
+    ADD DI, AX ; soma a coluna passada. Cada offset eh uma coluna
+    
+write: ; desenha o caracter no segmento grafico
+    MOV AL, [SI] ; SI contem qual o offset inicial do caracter a ser desenhado
+    CMP AL, "$"
+    JE sai
+    MOV ES:[DI],AL
+    ADD DI,40
+    INC SI
+    JMP write
+sai:
+
+RET
+
+GET_CHARACTER:
+    CMP AL, "a"
+    JE set_letter_a
+    CMP AL, "b"
+    JE set_letter_b
+    CMP AL, "c"
+    JE set_letter_c
+    CMP AL, "d"
+    JE set_letter_d
+    CMP AL, "e"
+    JE set_letter_e
+    CMP AL, "f"
+    JE set_letter_f
+    CMP AL, "g"
+    JE set_letter_g
+    CMP AL, "h"
+    JE set_letter_h
+    CMP AL, "i"
+    JE set_letter_i
+    CMP AL, "j"
+    JE set_letter_j
+    CMP AL, "k"
+    JE set_letter_k
+    CMP AL, "l"
+    JE set_letter_l
+    CMP AL, "m"
+    JE set_letter_m
+    CMP AL, "n"
+    JE set_letter_n
+    CMP AL, "o"
+    JE set_letter_o
+    CMP AL, "p"
+    JE set_letter_p
+    CMP AL, "q"
+    JE set_letter_q
+    CMP AL, "r"
+    JE set_letter_r
+    CMP AL, "s"
+    JE set_letter_s
+    CMP AL, "t"
+    JE set_letter_t
+    CMP AL, "u"
+    JE set_letter_u
+    CMP AL, "v"
+    JE set_letter_v
+    CMP AL, "w"
+    JE set_letter_w
+    CMP AL, "x"
+    JE set_letter_x
+    CMP AL, "y"
+    JE set_letter_y
+    CMP AL, "z"
+    JE set_letter_z
+    get_character_return:
+RET
+
+set_letter_a:
+    LEA SI, LETRA_A
+jmp get_character_return
+
+set_letter_b:
+    LEA SI, LETRA_B
+jmp get_character_return
+
+set_letter_c:
+    LEA SI, LETRA_C
+jmp get_character_return
+
+set_letter_d:
+    LEA SI, LETRA_D
+jmp get_character_return
+
+set_letter_e:
+    LEA SI, LETRA_E
+jmp get_character_return
+
+set_letter_f:
+    LEA SI, LETRA_F
+jmp get_character_return
+
+set_letter_g:
+    LEA SI, LETRA_G
+jmp get_character_return
+
+set_letter_h:
+    LEA SI, LETRA_H
+jmp get_character_return
+
+set_letter_i:
+    LEA SI, LETRA_I
+jmp get_character_return
+
+set_letter_j:
+    LEA SI, LETRA_J
+jmp get_character_return
+
+set_letter_k:
+    LEA SI, LETRA_K
+jmp get_character_return
+
+set_letter_l:
+    LEA SI, LETRA_L
+jmp get_character_return
+
+set_letter_m:
+    LEA SI, LETRA_M
+jmp get_character_return
+
+set_letter_n:
+    LEA SI, LETRA_N
+jmp get_character_return
+
+set_letter_o:
+    LEA SI, LETRA_O
+jmp get_character_return
+
+set_letter_p:
+    LEA SI, LETRA_P
+jmp get_character_return
+
+set_letter_q:     
+    LEA SI, LETRA_Q
+jmp get_character_return
+
+set_letter_r:
+    LEA SI, LETRA_R
+jmp get_character_return
+
+set_letter_s:
+    LEA SI, LETRA_S
+jmp get_character_return
+
+set_letter_t:
+    LEA SI, LETRA_T
+jmp get_character_return
+
+set_letter_u:
+    LEA SI, LETRA_U
+jmp get_character_return
+
+set_letter_v:
+    LEA SI, LETRA_V
+jmp get_character_return
+
+set_letter_w:
+    LEA SI, LETRA_W
+jmp get_character_return
+
+set_letter_x:
+    LEA SI, LETRA_X
+jmp get_character_return
+
+set_letter_y:
+    LEA SI, LETRA_Y
+jmp get_character_return
+
+set_letter_z:
+    LEA SI, LETRA_Z
+jmp get_character_return
 
 ends
 
