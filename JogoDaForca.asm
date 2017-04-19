@@ -4,8 +4,8 @@ data segment
 
 word dw "criatividade$"
 word_execution dw "____________$"
-winner_message dw "abcdefghijklmnopqrstuvwxyz$"
-loser_message dw "perdesse$"
+winner_message dw "parabens, voce ganhou!$"
+loser_message dw "perdeu, seu noob!$"
 
 word_length db 12
 hits db 0
@@ -241,8 +241,8 @@ DB 10000010B
 DB 10000010B
 DB 10000010B
 DB 10000010B
-DB 01000100B
-DB 00111000B
+DB 10000010B
+DB 11111110B
 DB "$"
 
 LETRA_V: 
@@ -309,6 +309,39 @@ DB 00000000B
 DB 00000000B
 DB 00000000B
 DB 11111110B
+DB "$"
+
+COMMA: 
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00100000B
+DB 11000000B
+DB "$"
+
+SPACE: 
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB 00000000B
+DB "$"
+
+EXCLAMATION: 
+DB 00011000B
+DB 00011000B
+DB 00011000B
+DB 00011000B
+DB 00011000B
+DB 00000000B
+DB 00011000B
+DB 00011000B
 DB "$"
          
 ends
@@ -622,6 +655,12 @@ GET_CHARACTER:
     JE set_letter_y
     CMP AL, "z"
     JE set_letter_z
+    CMP AL, " "
+    JE set_space
+    CMP AL, ","
+    JE set_comma
+    CMP AL, "!"
+    JE set_exclamation
     get_character_return:
 RET
 
@@ -727,6 +766,18 @@ jmp get_character_return
 
 set_letter_z:
     LEA SI, LETRA_Z
+jmp get_character_return
+
+set_space:
+    LEA SI, SPACE
+jmp get_character_return
+
+set_comma:
+    LEA SI, COMMA
+jmp get_character_return
+
+set_exclamation:
+    LEA SI, EXCLAMATION
 jmp get_character_return
 
 ends
