@@ -4,8 +4,8 @@ data segment
 
 word dw "criatividade$"
 word_execution dw "____________$"
-winner_message dw "Parabens, voce ganhou!$"
-loser_message dw "Parabens, voce perdeu, noob!$"
+winner_message dw "abcdefghijklmnopqrstuvwxyz$"
+loser_message dw "perdesse$"
 
 word_length db 12
 hits db 0
@@ -250,10 +250,10 @@ DB 10000010B
 DB 10000010B
 DB 10000010B
 DB 01000100B
-DB 00100100B
-DB 00100100B
-DB 00011000B
-DB 00011000B
+DB 01000100B
+DB 01000100B
+DB 00101000B
+DB 00010000B
 DB "$"
 
 LETRA_W: 
@@ -328,22 +328,20 @@ start:
     MOV AL,0DH ;320x200
     INT 10H ;CHAMA BIOS - PLACA VIDEO
     
-    MOV SI,0A000H
-    MOV ES,SI ; AGORA ES APONTA PARA O SEGMENTO DE VIDEO MODO GRAFICO
+    MOV SI, 0A000H
+    MOV ES, SI ; AGORA ES APONTA PARA O SEGMENTO DE VIDEO MODO GRAFICO
     
     CALL CLEAR_SCREEN ; limpa a tela para facilitar execucoes consecutivas do programa
                         
     MOV AX, 0
     CALL INITIALIZE_WORD ; desenha os tracos
-    
+                          
     continue_game:
     
         mov ah, 1 ; comando para o SO para leitura de dados de input (teclado)
         int 21h ; DO IT
-        
-        ;TODO bug na escrita da mensagem de final de jogo
-        ;TODO validar se o input foi uma letra
-        ;TODO letra 'V' sendo exibida de maneira estranha
+
+        ;TODO validar se o input foi uma letra minuscula (definir se sera maiuscula tambem)
         ;TODO exibir a forca
         
         CALL VERIFY_LETTER ; verifica a letra informada como input
@@ -355,16 +353,16 @@ start:
     
 CLEAR_SCREEN: ; limpa a tela do display grafico
    MOV DI, 0
-   MOV CH, 0
+   MOV CH, 0  ; zera para o loop funcionar em cima de CL
    MOV CL, 200 ; linhas (altura da linha)
    clear_column:
         PUSH CX      
            MOV CL, 40 ; colunas (largura da tela)
            clear_row:
-           MOV ES:[DI], 0
+           MOV ES:[DI], 0 ; limpo o offset do segmento grafico
+           INC DI
            LOOP clear_row
-        POP CX
-        INC DI
+        POP CX ; recupero a linha que esta limpando para fazer o loop
         LOOP clear_column
 RET
     
@@ -398,14 +396,14 @@ RET
 
 won:
     CALL CLEAR_SCREEN
-    LEA BX, winner_message
+    LEA SI, winner_message
     
     CALL WRITE_MESSAGE
     JMP exit 
 
 lose:
     CALL CLEAR_SCREEN
-    LEA BX, loser_message
+    LEA SI, loser_message
     
     CALL WRITE_MESSAGE 
     JMP exit
@@ -422,20 +420,23 @@ WRITE_MESSAGE: ; escrevo uma variavel tendo como base o primeiro offset de um
                    ; futuras pois este trecho eh a ultima execucao do programa
                     
     MOV DH, 1 ; coluna inicial da mensagem
-    MOV DL, 1 ; linha da mensagem
+    MOV DL, 5 ; linha da mensagem
     
     message_not_end:
-        CMP BX, "$"
+        CMP [SI], "$"
         JE message_ended
         
-        MOV AX, BX ; move a letra contida em BX para AX, onde a chamada ira atribuir
+        MOV AX, [SI] ; move a letra contida em BX para AX, onde a chamada ira atribuir
                    ; para SI o offset do caracter correto
+                   
+        PUSH SI ; salva o offset da mensagem         
         CALL GET_CHARACTER
         
         MOV AX, DX ; atribuo a linha e coluna correta para chamada
         CALL WRITE_CHARACTER
-  
-        INC BX ; proxima letra da mensagems
+             
+        POP SI ; recupera o offset da mensagem     
+        INC SI ; proxima letra da mensagem
         INC DH ; proxima coluna do segmento grafico
     JMP message_not_end
     
