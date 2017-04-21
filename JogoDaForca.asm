@@ -12,6 +12,9 @@ hits db 0
 errors db 0
 row db 5
 column db 5
+row_gibbet db 7
+column_gibbet db 5
+
 
 LETRA_A: 
 DB 11111110B
@@ -342,7 +345,35 @@ DB 00011000B
 DB 00000000B
 DB 00011000B
 DB 00011000B
-DB "$"
+DB "$" 
+
+
+FORCA_1:
+DW "000011111111111111000000"
+DW "000010000000000001000000"
+DW "000010000000000001000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "000010000000000000000000"
+DW "011111110000000000000000"
+DW "$"
          
 ends
 
@@ -569,9 +600,86 @@ finished_verification:
 JMP finished_verification_return
          
 wrong_hit: ; executa uma acao caso a uma letra incorreta for informada
-    inc errors
+    INC errors
+    CALL GET_ERRORS 
+    PUSH DI
+    CALL DRAW_GIBBET
+    POP DI
 JMP hit_return:
 
+GET_ERRORS:
+    CMP errors, 1
+    JE set_error1
+                 
+    CMP errors, 2
+    JE set_error2
+    
+    CMP errors, 3
+    JE set_error3
+    
+    CMP errors, 4
+    JE set_error4
+    
+    CMP errors, 5
+    JE set_error5
+    
+    CMP errors, 6
+    JE set_error6
+     
+    get_error_return: 
+    RET
+    
+set_error1:
+    LEA SI, FORCA_1
+    JMP get_error_return
+
+set_error2:
+    LEA SI, FORCA_1
+    JMP get_error_return
+
+set_error3:           
+    LEA SI, FORCA_1
+    JMP get_error_return
+
+set_error4:           
+    LEA SI, FORCA_1
+    JMP get_error_return
+
+set_error5:           
+    LEA SI, FORCA_1
+    JMP get_error_return
+
+set_error6:           
+    LEA SI, FORCA_1
+    JMP get_error_return
+    
+DRAW_GIBBET:
+    MOV AL, row_gibbet
+    MOV AH, column_gibbet 
+    
+    PUSH AX
+    MOV BL, 8 ; altura da linha
+    MUL BL 
+    MOV BL, 40 ;quantidade de offsets que uma linha tem
+    MUL BL  
+    
+    MOV DI,AX
+    POP AX 
+    MOV AL,0
+    XCHG AH,AL
+    ADD DI, AX
+    
+draw:
+    MOV AL, [SI] ; SI contem qual o offset inicial do caracter a ser desenhado
+    CMP AL, "$"
+    JE sai_draw
+    MOV ES:[DI],AL
+    ADD DI,40
+    INC SI
+    JMP draw
+sai_draw:
+
+RET             
                  
 WRITE_CHARACTER: ; escreve um caracter na linha e coluna apontada. AH = coluna, AL = linha
     PUSH AX
