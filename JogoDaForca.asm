@@ -6,13 +6,15 @@ word dw "criatividade$"
 word_execution dw "____________$"
 winner_message dw "parabens, voce ganhou!$"
 loser_message dw "perdeu, seu noob!$"
+invalid_input dw "valor informado invalido!$"
+digit_a_letter dw "informe uma letra$"
 
 word_length db 12
 hits db 0
 errors db 0
-row db 5
-column db 5
-row_gibbet db 7
+row db 13
+column db 9
+row_gibbet db 11
 column_gibbet db 5
 
 
@@ -50,14 +52,14 @@ DB 11111110B
 DB "$" 
 
 LETRA_D: 
-DB 11111110B
+DB 11111100B
+DB 10000010B
 DB 10000001B
 DB 10000001B
 DB 10000001B
 DB 10000001B
-DB 10000001B
-DB 10000001B
-DB 11111110B
+DB 10000010B
+DB 11111100B
 DB "$" 
 
 LETRA_E: 
@@ -194,25 +196,25 @@ DB 10000000B
 DB "$"
 
 LETRA_Q: 
-DB 00111100B
-DB 01000010B
+DB 00111000B
+DB 01000100B
 DB 10000010B
 DB 10000010B
 DB 10000010B
 DB 10001010B
-DB 01000110B
+DB 01000100B
 DB 00111010B
 DB "$"
 
 LETRA_R: 
-DB 11111110B
+DB 11111100B
 DB 10000010B
 DB 10000010B
-DB 11111110B
-DB 11000000B
-DB 10100000B
+DB 11111100B
 DB 10010000B
 DB 10001000B
+DB 10000100B
+DB 10000010B
 DB "$"
 
 LETRA_S: 
@@ -276,7 +278,7 @@ DB 01000100B
 DB 00101000B
 DB 00010000B
 DB 00101000B
-DB 01101100B
+DB 01000100B
 DB 01000100B
 DB 10000010B
 DB "$"
@@ -567,23 +569,40 @@ start:
     CALL CLEAR_SCREEN ; limpa a tela para facilitar execucoes consecutivas do programa
                         
     MOV AX, 0
-    CALL INITIALIZE_WORD ; desenha os tracos
+    CALL INITIALIZE_WORD ; desenha os tracos e a mensagem para informar uma letra
     CALL INITIALIZE_GIBBET
+
+    LEA SI, digit_a_letter ; escreve mensagem para o usuario informar uma letra
+    CALL WRITE_MESSAGE
                           
     continue_game:
     
         mov ah, 1 ; comando para o SO para leitura de dados de input (teclado)
         int 21h ; DO IT
-
-        ;TODO validar se o input foi uma letra minuscula (definir se sera maiuscula tambem)
-        ;TODO exibir a forca
         
-        CALL VERIFY_LETTER ; verifica a letra informada como input
+        CALL CLEAR_GRAPHIC_LETTER_INPUT ; limpa a letra inserida pelo SO
+        
+        CALL VALIDATE_INPUT
+        CMP DX, 1 ; se for um input valido
+        JE valid_input ; nao pede um novo caracter
+        
+        LEA SI, invalid_input ; informa uma mensagem ao usuario de que o valor informado
+                              ; eh invalido
+        CALL WRITE_MESSAGE
+        JMP continue_game
+        
+        valid_input:
+        
+            CALL VERIFY_LETTER ; verifica a letra informada como input
     
-        CALL VERIFY_GAME_STATE ; verifica se o jogo deve prosseguir ou terminar
+            CALL VERIFY_GAME_STATE ; verifica se o jogo deve prosseguir ou terminar
     
-    JMP continue_game
+            LEA SI, digit_a_letter
+            CALL WRITE_MESSAGE
     
+            JMP continue_game    
+    
+;---------------------------FUNCOES--------------------------------------
     
 CLEAR_SCREEN: ; limpa a tela do display grafico
    MOV DI, 0
@@ -605,12 +624,79 @@ INITIALIZE_GIBBET:
    CALL DRAW_GIBBET
    
 RET
+
+WRITE_WRONG_LETTER: ; escreve a letra que o usuario errou
+    PUSH AX
+    PUSH BX
+    
+    CALL GET_CHARACTER
+    MOV AL, errors
+    MOV BL, 2
+    MUL BL
+    
+    XCHG AL, AH
+    
+    ADD AH, 5
+    MOV AL, 18
+    CALL WRITE_CHARACTER
+    
+    POP BX
+    POP AX
+RET
+
+CLEAR_GRAPHIC_LETTER_INPUT: ; Limpa a letra inserida no display pelo sistema operacional
+   PUSH AX
+   PUSH DX
+   
+   MOV DX, 0
+   CALL CLEAR_ROW_DISPLAY
+   
+   MOV DL, 8H
+   MOV AH, 2H
+   INT 21h    ; da um backspace (retorna o index de escrita)
+   
+   POP DX
+   POP AX
+RET
+
+VALIDATE_INPUT:
+    MOV DX, 0 ; dx guardara a flag que dira se eh ou nao invalido
+    CALL IS_LETTER
+    
+    CMP DX, 1 ; eh uma letra minuscula, nao precisa passar pelo resto do procedimento
+    JMP end_of_validation
+    
+    ADD AL, 32 ; transforma a letra maiscula em minuscula
+               ; aqui, o input pode ser qualquer caracter, mas somando a 32 alterara seu valor
+               ; e ele ainda assim nao estara no range das letras minusculas
+    
+    CALL IS_LETTER           
+    
+end_of_validation:     
+RET
+
+IS_LETTER: ;verifica se eh uma letra minuscula movendo para DX o valor logico
+           ; indicando se eh ou nao
+    CMP AL, "a"
+    JGE greather_or_equals_a ; se for maior do que a.....
+    JMP isnt_a_letter
+        
+    greather_or_equals_a:
+    CMP AL, "z" ; e menor do que z....
+    JLE yes_is_letter
+    JMP isnt_a_letter
+    
+yes_is_letter:
+MOV DX, 1
+isnt_a_letter:    
+RET
     
 INITIALIZE_WORD:
    
     MOV AL, row
     MOV AH, column                                 
     
+    MOV CH, 0
     MOV CL, word_length ; quantidade de vezes que o loop ira percorrer
                         ; Obs.: O valor a ser utilizado sera CL
     
@@ -620,29 +706,26 @@ INITIALIZE_WORD:
         CALL WRITE_CHARACTER
         POP AX ; recupera o valor atual da linha e coluna
         INC AH ; pula para proxima coluna
-    LOOP write_traces
-    
+    LOOP write_traces    
 RET
    
    
 VERIFY_GAME_STATE:
-   CMP errors, 6 ; atingiu seis erros
-   JE lose ; caixao
-   MOV BL, word_length 
-   CMP hits, BL ; se o numero de acertos for a mesma quantidade do tamanho da palavra
-   JE won ; o cara eh bom, ganhou    
+    CMP errors, 6 ; atingiu seis erros
+    JE lose ; caixao
+    MOV BL, word_length 
+    CMP hits, BL ; se o numero de acertos for a mesma quantidade do tamanho da palavra
+    JE won ; o cara eh bom, ganhou    
 RET
 
 
 won:
-    CALL CLEAR_SCREEN
     LEA SI, winner_message
     
     CALL WRITE_MESSAGE
     JMP exit 
 
 lose:
-    CALL CLEAR_SCREEN
     LEA SI, loser_message
     
     CALL WRITE_MESSAGE 
@@ -654,20 +737,20 @@ exit:
     
 
 WRITE_MESSAGE: ; escrevo uma variavel tendo como base o primeiro offset de um
-                   ; dado contido em BX. Utilizado em BX para simplificar o desenvolvimento
-                   ; ja que SI esta sendo utilizado em boa parte do codigo.
-                   ; Nao chore! Isso nao traz nenhum risco de confusao de valores em execucoes
-                   ; futuras pois este trecho eh a ultima execucao do programa
+               ; dado contido em SI
+    PUSH AX
                     
-    MOV DH, 1 ; coluna inicial da mensagem
-    MOV DL, 5 ; linha da mensagem
+    MOV DH, 5 ; coluna inicial da mensagem
+    MOV DL, 6 ; linha da mensagem
+    
+    CALL CLEAR_MESSAGE_ROW
     
     message_not_end:
         CMP [SI], "$"
         JE message_ended
         
-        MOV AX, [SI] ; move a letra contida em BX para AX, onde a chamada ira atribuir
-                   ; para SI o offset do caracter correto
+        MOV AX, [SI] ; move a letra contida em SI para AX, onde a chamada ira atribuir
+                     ; para SI o offset do caracter correto
                    
         PUSH SI ; salva o offset da mensagem         
         CALL GET_CHARACTER
@@ -681,8 +764,35 @@ WRITE_MESSAGE: ; escrevo uma variavel tendo como base o primeiro offset de um
     JMP message_not_end
     
     message_ended:
+    POP AX
 RET
+
+CLEAR_MESSAGE_ROW: ; limpa a linha que exibe mensagens ao usuario
+    PUSH DX  
     
+    MOV DH, 0
+    CALL CLEAR_ROW_DISPLAY
+          
+    POP DX
+RET
+
+CLEAR_ROW_DISPLAY:
+    PUSH AX   
+    PUSH SI
+    
+    MOV CX, 40
+    clear_row_of_message:
+        LEA SI, SPACE
+    
+        MOV AX, DX
+        CALL WRITE_CHARACTER
+        
+        INC DH ; proxima coluna do segmento grafico
+    LOOP clear_row_of_message
+           
+    POP SI
+    POP AX
+RET    
 
 VERIFY_LETTER: ; Verificar se o input existe na palavra;     
 
@@ -776,6 +886,8 @@ finished_verification:
 JMP finished_verification_return
          
 wrong_hit: ; executa uma acao caso a uma letra incorreta for informada
+    CALL WRITE_WRONG_LETTER
+    
     INC errors
     CALL GET_ERRORS 
     PUSH DI
