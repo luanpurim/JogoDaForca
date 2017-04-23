@@ -8,6 +8,7 @@ winner_message dw "parabens, voce ganhou!$"
 loser_message dw "perdeu, seu noob!$"
 invalid_input dw "valor informado invalido!$"
 digit_a_letter dw "informe uma letra$"
+letter_already_used dw "letra ja utilizada$"
 
 word_length db 12
 hits db 0
@@ -594,15 +595,28 @@ start:
         valid_input:
         
             CALL VERIFY_LETTER ; verifica a letra informada como input
+            
+            CALL SELECT_NEXT_USER_FEEDBACK ; seleciona a proxima mensagem a ser exibida ao usuario
+            CALL WRITE_MESSAGE
     
             CALL VERIFY_GAME_STATE ; verifica se o jogo deve prosseguir ou terminar
-    
-            LEA SI, digit_a_letter
-            CALL WRITE_MESSAGE
     
             JMP continue_game    
     
 ;---------------------------FUNCOES--------------------------------------
+
+SELECT_NEXT_USER_FEEDBACK:
+    CMP DX, 0
+    JE wasn_used ; se a letra ainda nao havia sido informada
+        
+    LEA SI, letter_already_used 
+    JMP next_user_feedback_return
+    
+    wasn_used:
+        LEA SI, digit_a_letter 
+        
+    next_user_feedback_return:
+RET
     
 CLEAR_SCREEN: ; limpa a tela do display grafico
    MOV DI, 0
@@ -832,8 +846,16 @@ VERIFY_LETTER: ; Verificar se o input existe na palavra;
         INC SI ; passa para o proximo offset da palavra
         INC DI ; incrementa o index da palavra
     JMP verify
+    
+    char_already_used:
+        MOV DX, 1 ; flag que indicara se o character ja foi utilizado
+        JMP exit_verify
+    
     finished_verification_return:
-RET
+        MOV DX, 0
+    
+    exit_verify:
+ RET
 
 
 can_verify:
@@ -850,7 +872,7 @@ can_verify:
                        ; ATENCAO, SE O CARA INFORMAR DUAS VEZES A PALAVRA ERRADA
                        ; ESTAMOS CONSIDERANDO COMO DOIS ERROS, NINGUEM MANDA SER NOOB
                        
-        JE finished_verification_return ; o processo de verificacao nao sera realizado
+        JE char_already_used ; o processo de verificacao nao sera realizado
         
         INC SI
     JMP verify_char_already_used           
