@@ -3,7 +3,7 @@
 data segment
 
 word dw "criatividade$"
-word_execution dw "____________$"
+word_execution dw "__________________________________________"
 winner_message dw "parabens, voce ganhou!$"
 loser_message dw "perdeu! a palavra era:$"
 invalid_input dw "valor informado invalido!$"
@@ -581,6 +581,8 @@ start:
     CALL CLEAR_SCREEN ; limpa a tela para facilitar execucoes consecutivas do programa
     
     CALL CALCULATE_WORD_LENGTH ; calcula o tamanho da palavra
+    
+    CALL SET_END_OF_TRACES_VARIABLE ; seta o final da palavra em execucao conforme o seu tamanho
                         
     MOV AX, 0
     CALL INITIALIZE_WORD ; desenha os tracos e a mensagem para informar uma letra
@@ -665,10 +667,23 @@ CALCULATE_WORD_LENGTH:
     POP SI 
 RET
 
+SET_END_OF_TRACES_VARIABLE:
+    PUSH AX
+    PUSH SI       
+                                          
+    LEA SI, word_execution
+    MOV AX, 0
+    MOV AL, word_length
+    ADD SI, AX
+    MOV [SI], "$"
+   
+    POP SI
+    POP AX
+RET
+
 INITIALIZE_GIBBET:
    LEA SI, FORCA_0
    CALL DRAW_GIBBET
-   
 RET
 
 WRITE_WRONG_LETTER: ; escreve a letra que o usuario errou
