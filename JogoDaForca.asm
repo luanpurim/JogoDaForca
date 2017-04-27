@@ -5,7 +5,7 @@ data segment
 word dw "criatividade$"
 word_execution dw "____________$"
 winner_message dw "parabens, voce ganhou!$"
-loser_message dw "perdeu, seu noob!$"
+loser_message dw "perdeu! a palavra era:$"
 invalid_input dw "valor informado invalido!$"
 digit_a_letter dw "informe uma letra$"
 letter_already_used dw "letra ja utilizada$"
@@ -348,6 +348,17 @@ DB 00011000B
 DB 00000000B
 DB 00011000B
 DB 00011000B
+DB "$"
+
+TWO_POINTS: 
+DB 00000000B
+DB 00011000B
+DB 00011000B
+DB 00000000B
+DB 00000000B
+DB 00011000B
+DB 00011000B
+DB 00000000B
 DB "$" 
 
 FORCA_0:
@@ -574,7 +585,7 @@ start:
     CALL INITIALIZE_GIBBET
 
     LEA SI, digit_a_letter ; escreve mensagem para o usuario informar uma letra
-    CALL WRITE_MESSAGE
+    CALL WRITE_USER_MESSAGE
                           
     continue_game:
     
@@ -589,7 +600,7 @@ start:
         
         LEA SI, invalid_input ; informa uma mensagem ao usuario de que o valor informado
                               ; eh invalido
-        CALL WRITE_MESSAGE
+        CALL WRITE_USER_MESSAGE
         JMP continue_game
         
         valid_input:
@@ -597,7 +608,7 @@ start:
             CALL VERIFY_LETTER ; verifica a letra informada como input
             
             CALL SELECT_NEXT_USER_FEEDBACK ; seleciona a proxima mensagem a ser exibida ao usuario
-            CALL WRITE_MESSAGE
+            CALL WRITE_USER_MESSAGE
     
             CALL VERIFY_GAME_STATE ; verifica se o jogo deve prosseguir ou terminar
     
@@ -735,27 +746,40 @@ RET
 
 won:
     LEA SI, winner_message
+    CALL WRITE_USER_MESSAGE
     
-    CALL WRITE_MESSAGE
     JMP exit 
 
 lose:
     LEA SI, loser_message
+    CALL WRITE_USER_MESSAGE
     
-    CALL WRITE_MESSAGE 
+    LEA SI, word
+    CALL WRITE_RIGHT_WORD 
+    
     JMP exit
 
 exit: 
     mov ax, 4c00h ; exit to operating system.
     int 21h ; DO IT
     
+WRITE_USER_MESSAGE:
+    MOV DH, 5 ; coluna inicial da mensagem
+    MOV DL, 5 ; linha da mensagem
+    
+    CALL WRITE_MESSAGE
+RET
+
+WRITE_RIGHT_WORD:
+    MOV DH, 5 ; coluna inicial da mensagem
+    MOV DL, 7 ; linha da mensagem
+    
+    CALL WRITE_MESSAGE
+RET
 
 WRITE_MESSAGE: ; escrevo uma variavel tendo como base o primeiro offset de um
                ; dado contido em SI
     PUSH AX
-                    
-    MOV DH, 5 ; coluna inicial da mensagem
-    MOV DL, 6 ; linha da mensagem
     
     CALL CLEAR_MESSAGE_ROW
     
@@ -1084,6 +1108,8 @@ GET_CHARACTER:
     JE set_comma
     CMP AL, "!"
     JE set_exclamation
+    CMP AL, ":"
+    JE set_two_points
     get_character_return:
 RET
 
@@ -1201,6 +1227,10 @@ jmp get_character_return
 
 set_exclamation:
     LEA SI, EXCLAMATION
+jmp get_character_return
+
+set_two_points:
+    LEA SI, TWO_POINTS
 jmp get_character_return
 
 ends
