@@ -10,7 +10,7 @@ invalid_input dw "valor informado invalido!$"
 digit_a_letter dw "informe uma letra$"
 letter_already_used dw "letra ja utilizada$"
 
-word_length db 12
+word_length db 0
 hits db 0
 errors db 0
 row db 13
@@ -579,6 +579,8 @@ start:
     MOV ES, SI ; AGORA ES APONTA PARA O SEGMENTO DE VIDEO MODO GRAFICO
     
     CALL CLEAR_SCREEN ; limpa a tela para facilitar execucoes consecutivas do programa
+    
+    CALL CALCULATE_WORD_LENGTH ; calcula o tamanho da palavra
                         
     MOV AX, 0
     CALL INITIALIZE_WORD ; desenha os tracos e a mensagem para informar uma letra
@@ -642,6 +644,25 @@ CLEAR_SCREEN: ; limpa a tela do display grafico
            LOOP clear_row
         POP CX ; recupero a linha que esta limpando para fazer o loop
         LOOP clear_column
+RET
+
+CALCULATE_WORD_LENGTH:
+    PUSH SI
+    
+    MOV CL, 0
+    LEA SI, word   
+       
+    word_not_ended:
+        CMP [SI], "$"
+        JE end_word
+        INC CL    
+        INC SI
+    JMP word_not_ended
+        
+    end_word:
+    MOV word_length, CL
+    
+    POP SI 
 RET
 
 INITIALIZE_GIBBET:
