@@ -2,13 +2,14 @@
 
 data segment
 
-word dw "criatividade$"
+word dw "____________________________________________________"
 word_execution dw "__________________________________________"
 winner_message dw "parabens, voce ganhou!$"
 loser_message dw "perdeu! a palavra era:$"
 invalid_input dw "valor informado invalido!$"
 digit_a_letter dw "informe uma letra$"
 letter_already_used dw "letra ja utilizada$"
+inform_a_letter dw "informe uma letra$"
 
 word_length db 0
 hits db 0
@@ -580,6 +581,10 @@ start:
     
     CALL CLEAR_SCREEN ; limpa a tela para facilitar execucoes consecutivas do programa
     
+    CALL ASK_USER_WORD ; pergunta a palavra ao usuario
+    
+    CALL CLEAR_SCREEN ; limpa a tela para facilitar execucoes consecutivas do programa
+    
     CALL CALCULATE_WORD_LENGTH ; calcula o tamanho da palavra
     
     CALL SET_END_OF_TRACES_VARIABLE ; seta o final da palavra em execucao conforme o seu tamanho
@@ -620,6 +625,7 @@ start:
     
 ;---------------------------FUNCOES--------------------------------------
 
+
 SELECT_NEXT_USER_FEEDBACK:
     CMP DX, 0
     JE wasn_used ; se a letra ainda nao havia sido informada
@@ -646,6 +652,50 @@ CLEAR_SCREEN: ; limpa a tela do display grafico
            LOOP clear_row
         POP CX ; recupero a linha que esta limpando para fazer o loop
         LOOP clear_column
+RET
+
+ASK_USER_WORD: ; armazena a palavra informada pelo usuario
+    PUSH SI
+    PUSH DX
+    
+    LEA SI, inform_a_letter
+    CALL WRITE_USER_MESSAGE
+    
+    LEA SI, word
+    
+    ask_again:
+        mov ah, 1 ; comando para o SO para leitura de dados de input (teclado)
+        int 21h ; DO IT
+        
+        CALL CLEAR_GRAPHIC_LETTER_INPUT ; limpa a letra inserida pelo SO
+    
+        CMP AL, 13 ; se o usuario apertar enter, sai
+        JE get_out_user_ask_input
+        
+        CALL VALIDATE_INPUT
+        CMP DX, 1 ; se for um input valido
+        JE valid_user_input
+        
+            PUSH SI
+            
+            LEA SI, invalid_input
+            CALL WRITE_USER_MESSAGE
+            
+            POP SI
+            
+        JMP ask_again
+                  
+                  
+        valid_user_input:
+            MOV [SI], AL
+            INC SI
+        JMP ask_again
+    
+    get_out_user_ask_input:
+    MOV [SI], "$"
+    
+    POP DX    
+    POP SI
 RET
 
 CALCULATE_WORD_LENGTH:
